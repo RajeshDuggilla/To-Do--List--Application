@@ -1,46 +1,69 @@
-import tkinter as tk
-from tkinter import messagebox
+import streamlit as st
+import csv
+import os
 
-root = tk.Tk()
-root.title("To-Do List")
+CSV_FILE = "tasks.csv"
 
-def add_task():
-    task = task_entry.get()
-    if task:
-        tasks.insert(tk.END, task)
-        task_entry.delete(0, tk.END)
+def load_tasks():
+    """Load tasks from the CSV file."""
+    if not os.path.exists(CSV_FILE):
+        return []
+    with open(CSV_FILE, "r") as f:
+        return [row[0] for row in csv.reader(f)]
+
+def save_tasks(task_list):
+    """Save tasks to the CSV file."""
+    with open(CSV_FILE, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows([[task] for task in task_list])
+
+def display_tasks(task_list):
+    """Display tasks in the UI."""
+    if not task_list:
+        st.info("No tasks added yet.")
     else:
-        messagebox.showwarning("Warning", "You must enter a task.")
+        st.subheader("Current Tasks")
+        for i, task in enumerate(task_list, 1):
+            st.write(f"{i}. {task}")
 
-def remove_task():
-    try:
-        task_index = tasks.curselection()[0]
-        tasks.delete(task_index)
-    except:
-        messagebox.showwarning("Warning", "You must select a task to remove.")
+def set_background():
+    """Apply custom background image."""
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background-image: url("https://images.pexels.com/photos/2387793/pexels-photo-2387793.jpeg");
+            background-attachment: fixed;
+            background-size: cover;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-def mark_task():
-    try:
-        task_index = tasks.curselection()[0]
-        task = tasks.get(task_index)
-        tasks.delete(task_index)
-        tasks.insert(tk.END, task + " (Done)")
-    except:
-        messagebox.showwarning("Warning", "You must select a task to mark as done.")
+def main():
+    st.set_page_config(page_title="To-Do List", layout="centered")
+    set_background()
+    st.title("📝 To-Do List")
 
-tasks = tk.Listbox(root, width=50, height=10)
-tasks.pack(pady=10)
+    tasks = load_tasks()
 
-task_entry = tk.Entry(root, width=50)
-task_entry.pack(pady=10)
+    # Add task
+    with st.form("add_task_form", clear_on_submit=True):
+        task = st.text_input("Add a new task:")
+        submitted = st.form_submit_button("Add Task")
+        if submitted and task:
+            tasks.append(task)
+            save_tasks(tasks)
+            st.success("Task added!")
 
-add_button = tk.Button(root, text="Add Task", command=add_task)
-add_button.pack(pady=5)
+    # Clear tasks
+    if st.button("🗑️ Clear All Tasks"):
+        tasks.clear()
+        save_tasks(tasks)
+        st.warning("All tasks cleared!")
 
-remove_button = tk.Button(root, text="Remove Task", command=remove_task)
-remove_button.pack(pady=5)
+    display_tasks(tasks)
 
-mark_button = tk.Button(root, text="Mark as Done", command=mark_task)
-mark_button.pack(pady=5)
-
-root.mainloop()
+if __name__ == "__main__":
+    main()
